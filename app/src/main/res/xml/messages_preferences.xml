@@ -1,0 +1,19 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        app:key="signature"
+        app:title="Your signature"
+        app:useSimpleSummaryProvider="true" />
+
+    <ListPreference
+        app:defaultValue="reply"
+        app:entries="@array/reply_entries"
+        app:entryValues="@array/reply_values"
+        app:key="reply"
+        app:title="Default reply action"
+        app:useSimpleSummaryProvider="true" />
+
+    <SeekBarPreference android:max="59" app:showSeekBarValue="true" />
+
+</PreferenceScreen>

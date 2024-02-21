@@ -1,0 +1,40 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!--    <Preference
+            app:fragment="ink.sites.alarmclock.SettingsActivity$MessagesFragment"
+            app:icon="@drawable/messages"
+            app:key="messages_header"
+            app:title="Messages" />
+
+        <Preference
+            app:fragment="ink.sites.alarmclock.SettingsActivity$SyncFragment"
+            app:icon="@drawable/sync"
+            app:key="sync_header"
+            app:title="Sync" />-->
+    <SeekBarPreference
+        android:key="time"
+        android:max="59"
+        app:min="1"
+        app:showSeekBarValue="true"
+        app:summary="单位：分钟"
+        app:title="计时" />
+    <Preference
+        app:key="ringtone_time"
+        app:summary=""
+        app:title="选择铃声" />
+    <SeekBarPreference
+        android:key="delay"
+        android:max="59"
+        app:min="1"
+        app:showSeekBarValue="true"
+        app:summary="单位：分钟"
+        app:title="间隔延时" />
+    <Preference
+        app:key="ringtone_delay"
+        app:summary=""
+        app:title="选择铃声" />
+    <SwitchPreferenceCompat
+        app:key="loop"
+        app:summary="计时 -> 间隔延时是否循环计时"
+        app:title="循环计时" />
+</PreferenceScreen>

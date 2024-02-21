@@ -1,0 +1,14 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="sync"
+        app:title="Sync email periodically" />
+
+    <SwitchPreferenceCompat
+        app:dependency="sync"
+        app:key="attachment"
+        app:summaryOff="Only download attachments when manually requested"
+        app:summaryOn="Automatically download attachments for incoming emails"
+        app:title="Download incoming attachments" />
+
+</PreferenceScreen>
