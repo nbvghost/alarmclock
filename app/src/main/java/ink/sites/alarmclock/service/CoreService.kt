@@ -1,6 +1,6 @@
 package ink.sites.alarmclock.service
 
-import android.app.AlarmManager
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -15,6 +15,8 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -26,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class CoreService : LifecycleService() {
     companion object {
@@ -33,6 +36,27 @@ class CoreService : LifecycleService() {
         const val DelayRequestID = 55646
         var TimerNotificationChannelID = "ink.sites.alarmclock.service.TimerNotificationChannel"
         var DelayNotificationChannelID = "ink.sites.alarmclock.service.DelayNotificationChannel"
+
+
+        fun getPendingIntentForTime(context: Context): PendingIntent {
+            val coreReceiverIntent = Intent(context, TimerReceiver::class.java)
+            coreReceiverIntent.setAction("ink.sites.alarmclock.receiver.Timer")
+            return PendingIntent.getBroadcast(context, TimeRequestID, coreReceiverIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+
+        fun getPendingIntentForDelay(context: Context): PendingIntent {
+            val coreReceiverIntent = Intent(context, DelayReceiver::class.java)
+            coreReceiverIntent.setAction("ink.sites.alarmclock.receiver.Delay")
+            return PendingIntent.getBroadcast(context, DelayRequestID, coreReceiverIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+
+        fun alarmManagerCancelAll(context: Context) {
+            /*val a = getPendingIntentForDelay(context)
+            val b = getPendingIntentForTime(context)
+            val alarmManager = context.getSystemService(ComponentActivity.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(a)
+            alarmManager.cancel(b)*/
+        }
     }
 
     private val binder = LocalBinder()
@@ -47,8 +71,7 @@ class CoreService : LifecycleService() {
         return binder
     }
 
-    private var mediaTimePlayer: MediaPlayer? = null
-    private var mediaDelayPlayer: MediaPlayer? = null
+    private var mediaPlayer: MediaPlayer? = null
     private fun playTimeSound() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this@CoreService)
         val ringtone = sharedPreferences.getString("ringtone_time", "")
@@ -56,16 +79,17 @@ class CoreService : LifecycleService() {
             return
         }
 
-        mediaDelayPlayer?.pause()
-
-        if (mediaTimePlayer == null) {
-            mediaTimePlayer = MediaPlayer.create(baseContext, Uri.parse(ringtone))
-            mediaTimePlayer?.isLooping = true
-        }
-        if (mediaTimePlayer?.isPlaying == false) {
-            mediaTimePlayer?.seekTo(0)
-            mediaTimePlayer?.isLooping = true
-            mediaTimePlayer?.start()
+        mediaPlayer?.pause()
+        mediaPlayer?.release()
+        mediaPlayer=null
+        mediaPlayer = MediaPlayer.create(baseContext, Uri.parse(ringtone))
+        mediaPlayer?.let {
+            it.isLooping = true
+            if (!it.isPlaying) {
+                it.seekTo(0)
+                it.isLooping = true
+                it.start()
+            }
         }
     }
 
@@ -77,16 +101,17 @@ class CoreService : LifecycleService() {
             return
         }
 
-        mediaTimePlayer?.pause()
-
-        if (mediaDelayPlayer == null) {
-            mediaDelayPlayer = MediaPlayer.create(baseContext, Uri.parse(ringtone))
-            mediaDelayPlayer?.isLooping = true
-        }
-        if (mediaDelayPlayer?.isPlaying == false) {
-            mediaDelayPlayer?.seekTo(0)
-            mediaDelayPlayer?.isLooping = true
-            mediaDelayPlayer?.start()
+        mediaPlayer?.pause()
+        mediaPlayer?.release()
+        mediaPlayer=null
+        mediaPlayer = MediaPlayer.create(baseContext, Uri.parse(ringtone))
+        mediaPlayer?.let {
+            it.isLooping = true
+            if (!it.isPlaying) {
+                it.seekTo(0)
+                it.isLooping = true
+                it.start()
+            }
         }
     }
 
@@ -122,23 +147,25 @@ class CoreService : LifecycleService() {
 
             val isLoop = sharedPreferences.getBoolean("loop", false)
             if (isLoop) {
-                val delay = sharedPreferences.getInt("delay", 1)
+                /*val delay = sharedPreferences.getInt("delay", 1)
                 val alarmManager = context.getSystemService(ComponentActivity.ALARM_SERVICE) as AlarmManager
-                val coreReceiverIntent = Intent(context, DelayReceiver::class.java)
-                coreReceiverIntent.setAction("ink.sites.alarmclock.receiver.Delay")
+
+
                 //val pendingIntent = PendingIntent.getService(this, requestId, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
-                val pendingIntent = PendingIntent.getBroadcast(context, DelayRequestID, coreReceiverIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-                if (pendingIntent != null) {
-                    alarmManager.cancel(pendingIntent)
-                }
+                val pendingIntent = getPendingIntentForDelay(context)//PendingIntent.getBroadcast(context, DelayRequestID, coreReceiverIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+                alarmManager.cancel(pendingIntent)
+
+
                 alarmManager.set(
                     AlarmManager.ELAPSED_REALTIME_WAKEUP,
                     SystemClock.elapsedRealtime() + delay * 60 * 1000,
                     pendingIntent
-                )
+                )*/
             }
         }
     }
+
     class DelayReceiver() : BroadcastReceiver() {
         @RequiresApi(Build.VERSION_CODES.Q)
         override fun onReceive(context: Context, intent: Intent) {
@@ -154,47 +181,99 @@ class CoreService : LifecycleService() {
             notificationManager.notify(0, notification)
 
 
-
-            val time = sharedPreferences.getInt("time", 1)
+            /*val time = sharedPreferences.getInt("time", 1)
             val alarmManager = context.getSystemService(ComponentActivity.ALARM_SERVICE) as AlarmManager
             val coreReceiverIntent = Intent(context, TimerReceiver::class.java)
             coreReceiverIntent.setAction("ink.sites.alarmclock.receiver.Timer")
             //val pendingIntent = PendingIntent.getService(this, requestId, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
-            val pendingIntent = PendingIntent.getBroadcast(context, CoreService.TimeRequestID, coreReceiverIntent, PendingIntent.FLAG_UPDATE_CURRENT)
-            if (pendingIntent != null) {
-                alarmManager.cancel(pendingIntent)
-            }
+            val pendingIntent = getPendingIntentForTime(context)//PendingIntent.getBroadcast(context, CoreService.TimeRequestID, coreReceiverIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+            alarmManager.cancel(pendingIntent)
+
             alarmManager.set(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + time * 60 * 1000,
                 pendingIntent
-            )
+            )*/
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
 
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this@CoreService)
 
+        val runServiceNotificationChannelID = "ink.sites.alarmclock.service.RunningForegroundChannel"
 
-        /*MainViewModel.isPlaySound.observe(this@CoreService) { it ->
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val chan = NotificationChannel(runServiceNotificationChannelID, "服务运行", NotificationManager.IMPORTANCE_NONE)
+        chan.lightColor = Color.BLUE
+        chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        notificationManager.createNotificationChannel(chan)
+
+        val builder = NotificationCompat.Builder(this, runServiceNotificationChannelID)
+        builder.setContentText("ddd")
+        builder.setContentTitle("dd")
+        val notification = builder.setOngoing(false).setSmallIcon(R.mipmap.ic_launcher).setPriority(NotificationCompat.PRIORITY_MIN).setCategory(Notification.CATEGORY_SERVICE).build()
+
+        notification.flags = Notification.FLAG_ONGOING_EVENT
+        notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
+        notification.flags = notification.flags or Notification.FLAG_FOREGROUND_SERVICE
+        startForeground(445454, notification)
+
+
+
+
+        CoroutineScope(Dispatchers.Main).launch {
+            var kk = SystemClock.elapsedRealtime()
+            while (true) {
+                val i = (SystemClock.elapsedRealtime() - kk) - 1000
+                //Toast.makeText(this@CoreService, "service:${Build.VERSION.SDK_INT}:$i",Toast.LENGTH_LONG).show()
+                Log.d("show time", i.toString())
+
+                if (MainViewModel.isRun.value == true) {
+
+                    if (MainViewModel.isPause.value == false) {
+                        var current = MainViewModel.current.value!! + 1
+                        val time = MainViewModel.taskList.value!![MainViewModel.taskIndex.value!!] * 60
+                        if (current>=time) {
+                            if (MainViewModel.taskList.value!!.size == MainViewModel.taskIndex.value!! + 1) {
+                                MainViewModel.taskIndex.postValue(0)
+                                MainViewModel.current.postValue(0)
+                                playDelaySound()
+                            }else{
+                                MainViewModel.taskIndex.postValue(MainViewModel.taskIndex.value!!+1)
+                                MainViewModel.current.postValue(0)
+                                playTimeSound()
+                            }
+                            current=0
+                        }
+                        MainViewModel.current.postValue(current)
+                    }
+                }
+
+                kk = SystemClock.elapsedRealtime()
+                delay(1000)
+            }
+        }
+
+
+        MainViewModel.isPlaySound.observe(this@CoreService) { it ->
             if (!it) {
-                mediaTimePlayer?.pause()
-                mediaDelayPlayer?.pause()
-
+                mediaPlayer?.pause()
                 MainViewModel.isPlaySound.postValue(true)
             }
-        }*/
+        }
 
-
-        CoroutineScope(Dispatchers.IO).launch {
+        /*CoroutineScope(Dispatchers.IO).launch {
 
             while (false) {
                 val isRun = sharedPreferences.getBoolean("is-run", false)
                 val isLoop = sharedPreferences.getBoolean("loop", false)
                 val type = sharedPreferences.getInt("type", 0)
-                var current = sharedPreferences.getInt("current", 0)
+                var current = sharedPreferences.getLong("current", 0)
                 val time = sharedPreferences.getInt("time", 0) * 60
                 val delay = sharedPreferences.getInt("delay", 0) * 60
 
@@ -207,7 +286,7 @@ class CoreService : LifecycleService() {
                         MainViewModel.current.postValue(current)
                         sharedPreferences.edit().apply {
                             putInt("type", 1)
-                            putInt("current", current)
+                            putLong("current", current)
                             apply()
                         }
                         playTimeSound()
@@ -219,14 +298,14 @@ class CoreService : LifecycleService() {
                         if (!isLoop) {
                             sharedPreferences.edit().apply {
                                 putInt("type", 0)
-                                putInt("current", current)
+                                putLong("current", current)
                                 putBoolean("is-run", false)
                                 apply()
                             }
                         } else {
                             sharedPreferences.edit().apply {
                                 putInt("type", 0)
-                                putInt("current", current)
+                                putLong("current", current)
                                 apply()
                             }
                         }
@@ -235,13 +314,13 @@ class CoreService : LifecycleService() {
                     }
                     MainViewModel.current.postValue(current)
                     sharedPreferences.edit().apply {
-                        putInt("current", current)
+                        putLong("current", current)
                         apply()
                     }
                 }
                 delay(1000L)
             }
-        }
+        }*/
 
     }
 
@@ -276,6 +355,8 @@ class CoreService : LifecycleService() {
         notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
         notification.flags = notification.flags or Notification.FLAG_FOREGROUND_SERVICE
         startForeground(65, notification)
+
+
 
         return START_STICKY
     }
